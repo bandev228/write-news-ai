@@ -1,0 +1,5 @@
+{
+  "name": "AI Article Rewriter",
+  "description": "An AI-powered web application that automatically rewrites articles from any website link to be 100% SEO-compliant. It generates keywords, categories, titles, slugs, summaries, content, and all necessary SEO metadata.",
+  "requestFramePermissions": []
+}
