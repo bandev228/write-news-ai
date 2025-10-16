@@ -15,11 +15,19 @@ import { SparklesIcon, PlusIcon } from './components/Icons';
 const App: React.FC = () => {
   const [url, setUrl] = useState<string>('');
   const [focusKeyword, setFocusKeyword] = useState<string>('');
+  
+  // Rewriting options
   const [tone, setTone] = useState<string>('Chuyên nghiệp');
   const [length, setLength] = useState<string>('Khoảng 800 từ');
   const [isStrict, setIsStrict] = useState<boolean>(false);
+  const [language, setLanguage] = useState<string>('Vietnamese');
+  const [seoGoal, setSeoGoal] = useState<string>('Thông tin');
+  const [seoLevel, setSeoLevel] = useState<number>(3);
+  const [autoImages, setAutoImages] = useState<boolean>(true);
+  const [sampleTitle, setSampleTitle] = useState<string>('');
 
   const [rewrittenArticle, setRewrittenArticle] = useState<StoredArticle | null>(null);
+  const [originalArticleText, setOriginalArticleText] = useState<string | null>(null);
   const [seoResult, setSeoResult] = useState<SeoValidationResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +81,7 @@ const App: React.FC = () => {
     setSearchResults([]);
     setSearchTopic('');
     setSearchError(null);
+    setOriginalArticleText(null);
   };
 
   const handleSubmit = useCallback(async (event: React.FormEvent) => {
@@ -87,21 +96,35 @@ const App: React.FC = () => {
     setRewrittenArticle(null);
     setSeoResult(null);
     setCurrentArticleId(null);
+    setOriginalArticleText(null);
 
     try {
-      const articleData = await rewriteArticleFromUrl(url, focusKeyword, { tone, length, isStrict });
+      const { articleData, originalText } = await rewriteArticleFromUrl(url, focusKeyword, { 
+        tone, 
+        length, 
+        isStrict,
+        language,
+        seoGoal,
+        seoLevel,
+        sampleTitle,
+        autoImages,
+      });
+      
+      const validation = validateSeo(articleData, focusKeyword, url);
+      
       const articleToSave = {
         ...articleData,
         sourceUrl: url,
         sourceFocusKeyword: focusKeyword,
+        originalText: originalText,
+        seoScore: validation.score,
       };
       
       const storedArticle = saveArticleToHistory(articleToSave);
       setHistory(prev => [storedArticle, ...prev.filter(a => a.id !== storedArticle.id)]);
       setRewrittenArticle(storedArticle);
       setCurrentArticleId(storedArticle.id);
-      
-      const validation = validateSeo(storedArticle, focusKeyword);
+      setOriginalArticleText(originalText);
       setSeoResult(validation);
 
     } catch (err) {
@@ -110,7 +133,7 @@ const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [url, focusKeyword, tone, length, isStrict]);
+  }, [url, focusKeyword, tone, length, isStrict, language, seoGoal, seoLevel, sampleTitle, autoImages]);
 
   const handleSearch = useCallback(async () => {
     if (!searchTopic.trim()) return;
@@ -134,10 +157,11 @@ const App: React.FC = () => {
 
   const handleSelectArticle = (article: StoredArticle) => {
     setRewrittenArticle(article);
-    setSeoResult(validateSeo(article, article.sourceFocusKeyword));
+    setSeoResult(validateSeo(article, article.sourceFocusKeyword, article.sourceUrl));
     setUrl(article.sourceUrl);
     setFocusKeyword(article.sourceFocusKeyword);
     setCurrentArticleId(article.id);
+    setOriginalArticleText(article.originalText || null);
     window.scrollTo(0, 0);
   };
 
@@ -151,10 +175,23 @@ const App: React.FC = () => {
   };
 
   const handleUpdateArticle = (updatedArticle: StoredArticle) => {
-    updateArticleInHistory(updatedArticle);
-    setRewrittenArticle(updatedArticle);
-    setSeoResult(validateSeo(updatedArticle, updatedArticle.sourceFocusKeyword));
-    setHistory(prev => prev.map(a => a.id === updatedArticle.id ? updatedArticle : a));
+    const validation = validateSeo(updatedArticle, updatedArticle.sourceFocusKeyword, updatedArticle.sourceUrl);
+    const articleWithScore = { ...updatedArticle, seoScore: validation.score };
+    updateArticleInHistory(articleWithScore);
+    setRewrittenArticle(articleWithScore);
+    setSeoResult(validation);
+    setHistory(prev => prev.map(a => a.id === articleWithScore.id ? articleWithScore : a));
+  };
+  
+  const handleDuplicateArticle = (articleToDuplicate: StoredArticle) => {
+    const { id, createdAt, title, ...rest } = articleToDuplicate;
+    const articleToSave = {
+        ...rest,
+        title: `${title} (Copy)`,
+    };
+    const newArticle = saveArticleToHistory(articleToSave);
+    setHistory(getHistory()); // Re-fetch to get the sorted list
+    handleSelectArticle(newArticle);
   };
 
   const sidebarContent = (
@@ -162,6 +199,7 @@ const App: React.FC = () => {
       history={history}
       onSelect={handleSelectArticle}
       onDelete={handleDeleteArticle}
+      onDuplicate={handleDuplicateArticle}
       activeId={currentArticleId}
     />
   );
@@ -192,6 +230,16 @@ const App: React.FC = () => {
             setLength={setLength}
             isStrict={isStrict}
             setIsStrict={setIsStrict}
+            language={language}
+            setLanguage={setLanguage}
+            seoGoal={seoGoal}
+            setSeoGoal={setSeoGoal}
+            seoLevel={seoLevel}
+            setSeoLevel={setSeoLevel}
+            autoImages={autoImages}
+            setAutoImages={setAutoImages}
+            sampleTitle={sampleTitle}
+            setSampleTitle={setSampleTitle}
             handleSubmit={handleSubmit}
             isLoading={isLoading}
             keywordSuggestions={keywordSuggestions}
@@ -221,7 +269,7 @@ const App: React.FC = () => {
                   </h2>
                   <p className="text-slate-600 dark:text-slate-400 mt-1">Đây là dữ liệu bài viết đã được tối ưu hóa SEO của bạn.</p>
               </div>
-              <ArticleDisplay article={rewrittenArticle} seoResult={seoResult} onUpdate={handleUpdateArticle} />
+              <ArticleDisplay article={rewrittenArticle} seoResult={seoResult} onUpdate={handleUpdateArticle} originalText={originalArticleText} />
           </div>
         )}
         {!isLoading && !error && !rewrittenArticle && (

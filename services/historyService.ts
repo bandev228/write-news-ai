@@ -1,4 +1,5 @@
 import { StoredArticle } from '../types';
+import { validateSeo } from './seoValidator';
 
 const HISTORY_KEY = 'articleRewriterHistory';
 
@@ -8,8 +9,29 @@ export const getHistory = (): StoredArticle[] => {
     const historyJson = localStorage.getItem(HISTORY_KEY);
     if (historyJson) {
       const history = JSON.parse(historyJson) as StoredArticle[];
+      
+      let needsUpdate = false;
+      // One-time migration for old items without seoScore
+      const historyWithScores = history.map(article => {
+        if (typeof article.seoScore !== 'number') {
+          needsUpdate = true;
+          // FIX: Added missing `article.sourceUrl` argument to `validateSeo` call.
+          const score = validateSeo(article, article.sourceFocusKeyword, article.sourceUrl).score;
+          return { ...article, seoScore: score };
+        }
+        return article;
+      });
+
+      if (needsUpdate) {
+        try {
+          localStorage.setItem(HISTORY_KEY, JSON.stringify(historyWithScores));
+        } catch (error) {
+          console.error("Failed to update history with SEO scores", error);
+        }
+      }
+
       // Sort by newest first
-      return history.sort((a, b) => b.createdAt - a.createdAt);
+      return historyWithScores.sort((a, b) => b.createdAt - a.createdAt);
     }
   } catch (error) {
     console.error("Failed to parse history from localStorage", error);
@@ -26,7 +48,7 @@ export const saveArticleToHistory = (article: Omit<StoredArticle, 'id' | 'create
     createdAt: new Date().getTime(),
   };
   
-  const newHistory = [newArticle, ...history];
+  const newHistory = [newArticle, ...history.filter(a => a.id !== newArticle.id)];
   
   try {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));

@@ -16,26 +16,62 @@ export interface ArticleData {
 export interface StoredArticle extends ArticleData {
     sourceUrl: string;
     sourceFocusKeyword: string;
+    originalText?: string;
+    seoScore?: number;
 }
 
 export interface SeoCheck {
   pass: boolean;
   message: string;
+  value?: string | number;
+}
+
+export interface HeadingInfo {
+    level: number;
+    text: string;
 }
 
 export interface SeoValidationResult {
-  score: number; // Overall score out of 100
-  results: {
-    titleLength: SeoCheck;
-    metaDescriptionLength: SeoCheck;
-    keywordInTitle: SeoCheck;
-    keywordInMetaDescription: SeoCheck;
-    keywordInContent: SeoCheck;
-    headings: SeoCheck;
-  }
+  score: number;
+  title: {
+    check: SeoCheck;
+    length: number;
+    idealMin: number;
+    idealMax: number;
+  };
+  metaDescription: {
+    check: SeoCheck;
+    length: number;
+    idealMin: number;
+    idealMax: number;
+  };
+  keywordDensity: {
+    check: SeoCheck;
+    count: number;
+    wordCount: number;
+    density: number; // percentage
+  };
+  image: {
+    check: SeoCheck;
+  };
+  headings: {
+    check: SeoCheck;
+    structure: HeadingInfo[];
+  };
+  links: {
+    check: SeoCheck;
+    internalCount: number;
+    externalCount: number;
+  };
 }
+
 
 export interface NewsSearchResult {
   title: string;
   url: string;
+}
+
+export interface RewriteResult {
+  articleData: Omit<ArticleData, 'id' | 'createdAt'>;
+  originalText: string;
 }

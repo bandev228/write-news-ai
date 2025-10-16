@@ -13,6 +13,16 @@ interface UrlInputFormProps {
   setLength: (length: string) => void;
   isStrict: boolean;
   setIsStrict: (isStrict: boolean) => void;
+  language: string;
+  setLanguage: (lang: string) => void;
+  seoGoal: string;
+  setSeoGoal: (goal: string) => void;
+  seoLevel: number;
+  setSeoLevel: (level: number) => void;
+  autoImages: boolean;
+  setAutoImages: (auto: boolean) => void;
+  sampleTitle: string;
+  setSampleTitle: (title: string) => void;
   handleSubmit: (event: React.FormEvent) => void;
   isLoading: boolean;
   keywordSuggestions: string[];
@@ -47,6 +57,11 @@ const UrlInputForm: React.FC<UrlInputFormProps> = ({
     tone, setTone,
     length, setLength,
     isStrict, setIsStrict,
+    language, setLanguage,
+    seoGoal, setSeoGoal,
+    seoLevel, setSeoLevel,
+    autoImages, setAutoImages,
+    sampleTitle, setSampleTitle,
     handleSubmit, isLoading,
     keywordSuggestions, isSuggestingKeywords,
     searchTopic, setSearchTopic,
@@ -154,65 +169,71 @@ const UrlInputForm: React.FC<UrlInputFormProps> = ({
               )}
             </div>
           </div>
-
-          <div className="border-t border-slate-200 dark:border-slate-800 pt-6 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          
+          <div className="border-t border-slate-200 dark:border-slate-800 pt-6 space-y-6">
+              <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 -mb-2">Tùy chọn Viết lại</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
                 <div>
-                <label htmlFor="tone" className="block text-sm font-medium leading-6 text-slate-900 dark:text-slate-200">
-                    Văn phong
-                </label>
-                <select
-                    id="tone"
-                    name="tone"
-                    value={tone}
-                    onChange={(e) => setTone(e.target.value)}
-                    disabled={isLoading}
-                    className="mt-1 block w-full rounded-lg border-0 py-2.5 pl-3 pr-10 text-slate-900 dark:text-white ring-1 ring-inset ring-slate-300 dark:ring-slate-700 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-slate-50 dark:bg-slate-800/50 transition"
-                >
-                    <option>Chuyên nghiệp</option>
-                    <option>Thân thiện</option>
-                    <option>Hài hước</option>
-                    <option>Thuyết phục</option>
-                </select>
+                    <label htmlFor="tone" className="block text-sm font-medium leading-6 text-slate-900 dark:text-slate-200">Văn phong</label>
+                    <select id="tone" name="tone" value={tone} onChange={(e) => setTone(e.target.value)} disabled={isLoading} className="mt-1 block w-full rounded-lg border-0 py-2.5 pl-3 pr-10 text-slate-900 dark:text-white ring-1 ring-inset ring-slate-300 dark:ring-slate-700 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-slate-50 dark:bg-slate-800/50 transition">
+                        <option>Chuyên nghiệp</option>
+                        <option>Thân thiện</option>
+                        <option>Hài hước</option>
+                        <option>Thuyết phục</option>
+                        <option>Truyền cảm hứng</option>
+                        <option>Kỹ thuật</option>
+                        <option>Giải trí</option>
+                    </select>
                 </div>
                 <div>
-                <label htmlFor="length" className="block text-sm font-medium leading-6 text-slate-900 dark:text-slate-200">
-                    Độ dài mong muốn
-                </label>
-                <input
-                    type="text"
-                    name="length"
-                    id="length"
-                    value={length}
-                    onChange={(e) => setLength(e.target.value)}
-                    disabled={isLoading}
-                    className="mt-1 block w-full rounded-lg border-0 py-2.5 px-3 text-slate-900 dark:text-white ring-1 ring-inset ring-slate-300 dark:ring-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-slate-50 dark:bg-slate-800/50 transition"
-                />
+                    <label htmlFor="length" className="block text-sm font-medium leading-6 text-slate-900 dark:text-slate-200">Độ dài mong muốn</label>
+                    <input type="text" name="length" id="length" value={length} onChange={(e) => setLength(e.target.value)} disabled={isLoading} className="mt-1 block w-full rounded-lg border-0 py-2.5 px-3 text-slate-900 dark:text-white ring-1 ring-inset ring-slate-300 dark:ring-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-slate-50 dark:bg-slate-800/50 transition"/>
                 </div>
-            </div>
-            
-            <div className="relative flex items-start pt-2">
-                <div className="flex h-6 items-center">
-                <input
-                    id="isStrict"
-                    aria-describedby="isStrict-description"
-                    name="isStrict"
-                    type="checkbox"
-                    checked={isStrict}
-                    onChange={(e) => setIsStrict(e.target.checked)}
-                    disabled={isLoading}
-                    className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-600 bg-white/5 dark:bg-slate-800/50"
-                />
+                <div>
+                    <label htmlFor="language" className="block text-sm font-medium leading-6 text-slate-900 dark:text-slate-200">Ngôn ngữ</label>
+                    <select id="language" name="language" value={language} onChange={(e) => setLanguage(e.target.value)} disabled={isLoading} className="mt-1 block w-full rounded-lg border-0 py-2.5 pl-3 pr-10 text-slate-900 dark:text-white ring-1 ring-inset ring-slate-300 dark:ring-slate-700 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-slate-50 dark:bg-slate-800/50 transition">
+                        <option>Vietnamese</option>
+                        <option>English</option>
+                    </select>
                 </div>
-                <div className="ml-3 text-sm leading-6">
-                <label htmlFor="isStrict" className="font-medium text-slate-900 dark:text-slate-200">
-                    Viết lại nghiêm ngặt
-                </label>
-                <p id="isStrict-description" className="text-slate-500 dark:text-slate-400">
-                    Tăng cường mức độ viết lại để giảm thiểu sự tương đồng với bài viết gốc.
-                </p>
+                <div>
+                    <label htmlFor="seoGoal" className="block text-sm font-medium leading-6 text-slate-900 dark:text-slate-200">Mục tiêu SEO (Intent)</label>
+                    <select id="seoGoal" name="seoGoal" value={seoGoal} onChange={(e) => setSeoGoal(e.target.value)} disabled={isLoading} className="mt-1 block w-full rounded-lg border-0 py-2.5 pl-3 pr-10 text-slate-900 dark:text-white ring-1 ring-inset ring-slate-300 dark:ring-slate-700 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-slate-50 dark:bg-slate-800/50 transition">
+                        <option>Thông tin</option>
+                        <option>Thương mại</option>
+                        <option>Đánh giá</option>
+                        <option>Hướng dẫn</option>
+                    </select>
                 </div>
-            </div>
+              </div>
+              <div>
+                <label htmlFor="sampleTitle" className="block text-sm font-medium leading-6 text-slate-900 dark:text-slate-200 mb-1">Tiêu đề Mẫu (Tùy chọn)</label>
+                <input type="text" name="sampleTitle" id="sampleTitle" className="block w-full rounded-lg border-0 py-2.5 px-3 text-slate-900 dark:text-white ring-1 ring-inset ring-slate-300 dark:ring-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-slate-50 dark:bg-slate-800/50 transition" placeholder="Cung cấp tiêu đề mẫu để AI tham khảo..." value={sampleTitle} onChange={(e) => setSampleTitle(e.target.value)} disabled={isLoading} />
+              </div>
+              <div>
+                <label htmlFor="seoLevel" className="block text-sm font-medium leading-6 text-slate-900 dark:text-slate-200">Mức độ Tối ưu SEO: <span className="font-bold text-indigo-600 dark:text-indigo-400">{seoLevel}</span>/5</label>
+                <input id="seoLevel" type="range" min="1" max="5" step="1" value={seoLevel} onChange={(e) => setSeoLevel(Number(e.target.value))} disabled={isLoading} className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer mt-2 accent-indigo-600 dark:accent-indigo-500" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div className="relative flex items-start">
+                    <div className="flex h-6 items-center">
+                        <input id="isStrict" name="isStrict" type="checkbox" checked={isStrict} onChange={(e) => setIsStrict(e.target.checked)} disabled={isLoading} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-600 bg-white/5 dark:bg-slate-800/50" />
+                    </div>
+                    <div className="ml-3 text-sm leading-6">
+                        <label htmlFor="isStrict" className="font-medium text-slate-900 dark:text-slate-200">Viết lại nghiêm ngặt</label>
+                        <p className="text-slate-500 dark:text-slate-400">Tăng cường mức độ viết lại để giảm thiểu sự tương đồng.</p>
+                    </div>
+                </div>
+                 <div className="relative flex items-start">
+                    <div className="flex h-6 items-center">
+                        <input id="autoImages" name="autoImages" type="checkbox" checked={autoImages} onChange={(e) => setAutoImages(e.target.checked)} disabled={isLoading} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-600 bg-white/5 dark:bg-slate-800/50" />
+                    </div>
+                    <div className="ml-3 text-sm leading-6">
+                        <label htmlFor="autoImages" className="font-medium text-slate-900 dark:text-slate-200">Tự động tạo ảnh</label>
+                        <p className="text-slate-500 dark:text-slate-400">AI sẽ tạo một ảnh đại diện (featured image) cho bài viết.</p>
+                    </div>
+                </div>
+              </div>
           </div>
 
           <button

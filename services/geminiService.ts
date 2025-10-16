@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { ArticleData, NewsSearchResult } from "../types";
+import { ArticleData, NewsSearchResult, RewriteResult } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
@@ -7,6 +7,10 @@ interface RewriteOptions {
   tone: string;
   length: string;
   isStrict: boolean;
+  language: string;
+  seoGoal: string;
+  seoLevel: number;
+  sampleTitle?: string;
 }
 
 interface SeoOutline {
@@ -40,7 +44,7 @@ const extractArticleTextFromUrl = async (url: string): Promise<string> => {
 }
 
 // Helper: Generates a title, summary, and structural outline
-const generateSeoOutline = async (articleText: string, focusKeyword: string): Promise<SeoOutline> => {
+const generateSeoOutline = async (articleText: string, focusKeyword: string, language: string, seoGoal: string, sampleTitle?: string): Promise<SeoOutline> => {
     const outlineSchema = {
         type: Type.OBJECT,
         properties: {
@@ -61,13 +65,16 @@ const generateSeoOutline = async (articleText: string, focusKeyword: string): Pr
         required: ["title", "summary", "outline"]
     };
 
-    const prompt = `Dựa trên nội dung bài viết sau đây và từ khóa tập trung, hãy tạo một kế hoạch nội dung SEO.
+    const prompt = `Dựa trên nội dung bài viết sau đây và các yêu cầu SEO, hãy tạo một kế hoạch nội dung.
     
     **TỪ KHÓA TẬP TRUNG**: "${focusKeyword}"
+    **NGÔN NGỮ**: ${language}
+    **MỤC TIÊU SEO**: ${seoGoal} (ví dụ: cung cấp thông tin, bán hàng, đánh giá sản phẩm)
+    **TIÊU ĐỀ MẪU (nếu có)**: ${sampleTitle || "Không có"}
     
     **NỘI DUNG GỐC (tóm tắt)**: "${articleText.substring(0, 2000)}..."
     
-    **NHIỆM VỤ**: Tạo một tiêu đề hấp dẫn, một bản tóm tắt ngắn và một dàn ý chi tiết (sử dụng H2, H3) cho một bài viết được tối ưu hóa SEO. Đảm bảo từ khóa tập trung được tích hợp một cách tự nhiên.`;
+    **NHIỆM VỤ**: Tạo một tiêu đề hấp dẫn, một bản tóm tắt ngắn và một dàn ý chi tiết (sử dụng H2, H3) cho một bài viết được tối ưu hóa SEO bằng ngôn ngữ đã chỉ định. Đảm bảo từ khóa tập trung được tích hợp một cách tự nhiên.`;
 
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
@@ -89,7 +96,7 @@ const rewriteContentFromOutline = async (
     options: RewriteOptions,
     focusKeyword: string
 ): Promise<string> => {
-    const prompt = `Bạn là một chuyên gia viết nội dung SEO. Dựa vào kế hoạch và nội dung gốc được cung cấp, hãy viết lại một bài viết hoàn chỉnh bằng tiếng Việt.
+    const prompt = `Bạn là một chuyên gia viết nội dung SEO. Dựa vào kế hoạch và nội dung gốc được cung cấp, hãy viết lại một bài viết hoàn chỉnh.
     
     **TỪ KHÓA TẬP TRUNG**: "${focusKeyword}"
     
@@ -99,7 +106,10 @@ const rewriteContentFromOutline = async (
     ${plan.outline.join('\n')}
     
     **YÊU CẦU TÙY CHỈNH**:
+    *   **Ngôn ngữ**: ${options.language}
     *   **Văn phong**: ${options.tone}
+    *   **Mục tiêu SEO**: ${options.seoGoal}
+    *   **Mức độ tối ưu SEO (1-5, 5 là cao nhất)**: ${options.seoLevel}. Mức độ này ảnh hưởng đến mật độ từ khóa, cấu trúc câu và các yếu tố SEO on-page khác.
     *   **Độ dài mong muốn**: ${options.length}
     *   **Mức độ viết lại nghiêm ngặt**: ${options.isStrict ? 'Rất cao. Viết lại sâu sắc, chỉ giữ lại ý chính.' : 'Tiêu chuẩn.'}
     
@@ -107,9 +117,9 @@ const rewriteContentFromOutline = async (
     "${originalArticleText.substring(0, 4000)}..."
 
     **NHIỆM VỤ**:
-    1.  Viết một bài viết hoàn chỉnh dưới dạng HTML.
+    1.  Viết một bài viết hoàn chỉnh dưới dạng HTML bằng ngôn ngữ "${options.language}".
     2.  Sử dụng các thẻ \`<h2>\` và \`<h3>\` tương ứng với dàn ý.
-    3.  Tích hợp **Từ khóa tập trung** và các từ khóa liên quan một cách tự nhiên.
+    3.  Tích hợp **Từ khóa tập trung** và các từ khóa liên quan một cách tự nhiên, phù hợp với mức độ tối ưu SEO đã chọn.
     4.  Đảm bảo nội dung độc đáo, chất lượng cao và tuân thủ các yêu cầu tùy chỉnh.
     5.  Sử dụng các thẻ \`<p>\`, \`<ul>\`, \`<strong>\` để định dạng.
     6.  **QUAN TRỌNG**: Sau đoạn giới thiệu đầu tiên (1-2 đoạn \`<p>\`), chèn một placeholder duy nhất là \`[AVATAR_IMAGE_HERE]\`.
@@ -149,7 +159,7 @@ const generateSeoMetadata = async (articleHtmlContent: string, title: string, fo
         },
         seoTitle: {
           type: Type.STRING,
-          description: "Một tiêu đề SEO được tối ưu hóa, khoảng 50-60 ký tự, phải chứa từ khóa tập trung ở đầu."
+          description: "Một tiêu đề SEO được tối ưu hóa, khoảng 50-70 ký tự, phải chứa từ khóa tập trung ở đầu."
         },
         seoDescription: {
           type: Type.STRING,
@@ -255,7 +265,7 @@ export const searchRecentNews = async (topic: string): Promise<NewsSearchResult[
 }
 
 export const suggestKeywordsFromUrl = async (url: string): Promise<string[]> => {
-    const prompt = `Phân tích nội dung bài viết tại URL: ${url}. Dựa trên chủ đề chính, hãy đề xuất 4 từ khóa tập trung (focus keywords) phù hợp nhất cho SEO. Các từ khóa phải bằng tiếng Việt, ngắn gọn và có ý định tìm kiếm cao. Trả về KẾT QUẢ DUY NHẤT dưới dạng một mảng JSON chứa các chuỗi. Ví dụ: ["cách làm phở bò", "công thức phở bò gia truyền", "nấu phở bò ngon tại nhà", "bí quyết nấu phở bò"]`;
+    const prompt = `Phân tích nội dung bài viết tại URL: ${url}. Dựa trên chủ đề chính, hãy đề xuất 4 từ khóa tập trung (focus keywords) phù hợp nhất cho SEO. Các từ khóa phải bằng tiếng Việt, ngắn gọn và có ý định tìm kiếm cao. Trả về KẾT QUÁ DUY NHẤT dưới dạng một mảng JSON chứa các chuỗi. Ví dụ: ["cách làm phở bò", "công thức phở bò gia truyền", "nấu phở bò ngon tại nhà", "bí quyết nấu phở bò"]`;
 
     try {
         const response = await ai.models.generateContent({
@@ -278,11 +288,65 @@ export const suggestKeywordsFromUrl = async (url: string): Promise<string[]> => 
     }
 }
 
+export const convertHtmlToMarkdown = async (htmlContent: string): Promise<string> => {
+    const prompt = `Vui lòng chuyển đổi nội dung HTML sau thành Markdown được định dạng tốt. Duy trì cấu trúc, bao gồm tiêu đề, danh sách, văn bản in đậm, v.v. Không bao gồm bất kỳ văn bản giải thích nào, chỉ trả về Markdown thô.
+    
+    NỘI DUNG HTML:
+    ${htmlContent}`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [{ parts: [{ text: prompt }] }],
+        config: { temperature: 0.1 }
+    });
+
+    return response.text.trim();
+}
+
+export const getReadabilityScore = async (articleText: string): Promise<{ score: number; message: string }> => {
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            score: {
+                type: Type.NUMBER,
+                description: "Một điểm số từ 0 đến 100 đánh giá mức độ dễ đọc của văn bản."
+            },
+            message: {
+                type: Type.STRING,
+                description: "Một câu nhận xét ngắn gọn (khoảng 15-20 từ) giải thích điểm số, ví dụ: 'Văn bản rất dễ đọc với câu ngắn và từ ngữ đơn giản.'"
+            }
+        },
+        required: ["score", "message"]
+    };
+
+    const prompt = `Phân tích văn bản sau đây để đánh giá mức độ dễ đọc. Xem xét các yếu tố như độ dài câu, sự phức tạp của từ ngữ và cấu trúc tổng thể. Cung cấp điểm số từ 0 (rất khó đọc) đến 100 (rất dễ đọc) và một nhận xét ngắn gọn.
+
+    VĂN BẢN:
+    "${articleText.substring(0, 4000)}..."`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [{ parts: [{ text: prompt }] }],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: schema,
+                temperature: 0.3,
+            },
+        });
+        return JSON.parse(response.text);
+    } catch (error) {
+        console.error("Error getting readability score:", error);
+        return { score: 0, message: "Không thể phân tích độ dễ đọc." };
+    }
+};
+
+
 export const rewriteArticleFromUrl = async (
     url: string,
     focusKeyword: string,
-    options: RewriteOptions
-): Promise<Omit<ArticleData, 'id' | 'createdAt'>> => {
+    options: RewriteOptions & { autoImages: boolean }
+): Promise<RewriteResult> => {
     let lastError: Error | null = null;
 
     for (let i = 0; i < MAX_RETRIES; i++) {
@@ -295,7 +359,7 @@ export const rewriteArticleFromUrl = async (
 
             // STEP 2: Generate an SEO-focused outline
             console.log("[2/6] Generating SEO outline...");
-            const structuredPlan = await generateSeoOutline(articleText, focusKeyword);
+            const structuredPlan = await generateSeoOutline(articleText, focusKeyword, options.language, options.seoGoal, options.sampleTitle);
 
             // STEP 3: Rewrite the article based on the outline
             console.log("[3/6] Rewriting content from outline...");
@@ -305,14 +369,26 @@ export const rewriteArticleFromUrl = async (
             console.log("[4/6] Generating SEO metadata...");
             const metadata = await generateSeoMetadata(rewrittenHtmlContent, structuredPlan.title, focusKeyword);
 
-            // STEP 5: Generate the avatar image
-            console.log("[5/6] Generating image...");
-            const { avatarUrl } = await generateImage(metadata.seoTitle, focusKeyword);
+            // STEP 5: Generate the avatar image (conditionally)
+            let avatarUrl = '';
+            if (options.autoImages) {
+                console.log("[5/6] Generating image...");
+                const { avatarUrl: generatedUrl } = await generateImage(metadata.seoTitle, focusKeyword);
+                avatarUrl = generatedUrl;
+            } else {
+                console.log("[5/6] Skipping image generation as per settings.");
+            }
             
             // STEP 6: Assemble the final article
             console.log("[6/6] Assembling final article...");
-            const imageTag = `<img src="${avatarUrl}" alt="${metadata.seoTitle}" style="width:100%; height:auto; border-radius: 8px; margin: 1.5em 0;" />`;
-            const finalContent = rewrittenHtmlContent.replace('[AVATAR_IMAGE_HERE]', imageTag);
+            
+            let finalContent = rewrittenHtmlContent;
+            if (options.autoImages && avatarUrl) {
+                const imageTag = `<img src="${avatarUrl}" alt="${metadata.seoTitle}" style="width:100%; height:auto; border-radius: 8px; margin: 1.5em 0;" />`;
+                finalContent = finalContent.replace('[AVATAR_IMAGE_HERE]', imageTag);
+            } else {
+                finalContent = rewrittenHtmlContent.replace('[AVATAR_IMAGE_HERE]', '');
+            }
 
             const finalArticle = {
                 ...metadata,
@@ -323,7 +399,7 @@ export const rewriteArticleFromUrl = async (
             };
 
             console.log("--- Article Generation Successful ---");
-            return finalArticle;
+            return { articleData: finalArticle, originalText: articleText };
 
         } catch (error) {
             lastError = error as Error;
